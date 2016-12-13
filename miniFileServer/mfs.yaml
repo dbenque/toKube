@@ -1,0 +1,37 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    run: minifileserver
+  name: minifileserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: minifileserver
+  template:
+    metadata:
+      labels:
+        run: minifileserver
+    spec:
+      containers:
+      - image: minifileserver:v0
+        name: minifileserver
+        ports:
+        - containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minifileserver
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    nodePort: 30666
+  selector:
+    run: minifileserver
+  type: NodePort

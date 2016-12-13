@@ -1,0 +1,10 @@
+package: github.com/dbenque/toKube
+import:
+- package: k8s.io/client-go
+  subpackages:
+  - kubernetes
+  - pkg/api/resource
+  - pkg/api/v1
+  - pkg/apis/extensions/v1beta1
+  - pkg/apis/meta/v1
+  - tools/clientcmd
