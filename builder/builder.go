@@ -48,7 +48,7 @@ func (b *BuildConfig) Build() (string, error) {
 	// 	"-installsuffix", "netgo", ".",
 	// }
 	command := []string{
-		"go", "build", "-o", output, "-a", "-installsuffix", "cgo", "-ldflags", "'-s'", ".",
+		"go", "build", "-o", output, "-a", "-installsuffix", "cgo", "-ldflags", "'-s'", b.SourceFolder,
 	}
 
 	cmd := exec.Command(command[0], command[1:]...)

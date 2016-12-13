@@ -182,3 +182,23 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 
 	return nil
 }
+
+//ExposeService expose a service for the deployment
+func (d *Deployment) ExposeService(kclientset kubernetes.Interface) error {
+
+	svc := v1.Service{}
+	svc.APIVersion = "v1"
+	svc.Kind = "Service"
+	svc.Name = d.Name
+	svc.Namespace = d.Namespace
+	svc.Spec.Selector = d.Labels
+	svc.Spec.Ports = []v1.ServicePort{v1.ServicePort{Port: 80}}
+	svc.Spec.Type = "NodePort"
+
+	_, err := kclientset.CoreV1().Services(d.Namespace).Create(&svc)
+	if err != nil {
+		return fmt.Errorf("Fail to create replicatSet: %s", err)
+	}
+
+	return nil
+}
