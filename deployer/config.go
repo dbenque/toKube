@@ -87,6 +87,7 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	container.Image = "alpine:3.4"
 	container.Name = d.Name
 	container.VolumeMounts = volumeMounts
+	container.Ports = []v1.ContainerPort{v1.ContainerPort{ContainerPort: 9102}} // for prometheus
 
 	resourceLimits := make(v1.ResourceList)
 	if d.cpuLimit != "" {
@@ -152,6 +153,7 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 		return err
 	}
 	annotations["pod.beta.kubernetes.io/init-containers"] = string(ic)
+	annotations["prometheus.io/scrape"] = "true"
 
 	d.Labels["run"] = d.Name
 
@@ -175,6 +177,8 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	krs.Spec.Template.Spec.Volumes = volumes
 	//krs.Spec.Template.Spec.InitContainers = initContainers
 
+	krs.Spec.Template.Labels["taffic"] = "yes"
+
 	_, err = kclientset.ExtensionsV1beta1().ReplicaSets(d.Namespace).Create(&krs)
 	if err != nil {
 		return fmt.Errorf("Fail to create replicatSet: %s", err)
@@ -192,6 +196,7 @@ func (d *Deployment) ExposeService(kclientset kubernetes.Interface) error {
 	svc.Name = d.Name
 	svc.Namespace = d.Namespace
 	svc.Spec.Selector = d.Labels
+	svc.Spec.Selector["traffic"] = "yes"
 	svc.Spec.Ports = []v1.ServicePort{v1.ServicePort{Port: 80}}
 	svc.Spec.Type = "NodePort"
 

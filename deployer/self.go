@@ -78,13 +78,18 @@ func AutoDeploy() {
 			fmt.Printf("Error Deploying: %s", err)
 			panic("Error Deploying")
 		}
+		if err := deployment.ExposeService(kcli); err != nil {
+			fmt.Printf("Error Creating Service: %s", err)
+			panic("Error Creating Service")
+		}
+
 		fmt.Println("Deployment submitted")
 		os.Exit(0)
 	}
 }
 
 //DeployFolder build and deploy the code in the folder
-func DeployFolder(name, folder string) {
+func DeployFolder(name, folder string, replicas int) {
 
 	fmt.Println("Deployment mode")
 	home := os.Getenv("HOME")
@@ -128,6 +133,7 @@ func DeployFolder(name, folder string) {
 
 	fmt.Println("Deploying")
 	deployment := NewDeploymentFromArgs(strings.ToLower(name))
+	deployment.Replicas = replicas
 	deployment.BinaryURL = "http://minifileserver/" + binName
 	if err := deployment.Create(kcli); err != nil {
 		fmt.Printf("Error Deploying: %s", err)
