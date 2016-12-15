@@ -177,7 +177,7 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	krs.Spec.Template.Spec.Volumes = volumes
 	//krs.Spec.Template.Spec.InitContainers = initContainers
 
-	krs.Spec.Template.Labels["taffic"] = "yes"
+	krs.Spec.Template.Labels["traffic"] = "yes"
 
 	_, err = kclientset.ExtensionsV1beta1().ReplicaSets(d.Namespace).Create(&krs)
 	if err != nil {
