@@ -1,12 +1,19 @@
 package builder
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
+
+var staticBuild bool
+
+func init() {
+	flag.BoolVar(&staticBuild, "static-build", true, "Number of replicas")
+}
 
 //BuildConfig describe the build to be performed
 type BuildConfig struct {
@@ -23,14 +30,17 @@ func (b *BuildConfig) UseShellEnv() {
 }
 
 func (b *BuildConfig) commandEnv() []string {
-	return []string{
+	env := []string{
 		"GOOS=linux",
 		"GOARCH=amd64",
 		"GOPATH=" + b.GoPath,
 		"GOROOT=" + b.GoRoot,
 		"PATH=" + b.Path,
-		"CGO_ENABLED=0",
 	}
+	if staticBuild {
+		env = append(env, "CGO_ENABLED=0")
+	}
+	return env
 }
 
 //Build launch the gobuild
@@ -41,15 +51,13 @@ func (b *BuildConfig) Build() (string, error) {
 	}
 
 	output := filepath.Join(tmpDir, b.Name)
-	//ldflags := `-extldflags "-static"`
-	// command := []string{
-	// 	"go", "build", "-o", output, "-a", "--ldflags",
-	// 	ldflags, "-tags", "netgo",
-	// 	"-installsuffix", "netgo", ".",
-	// }
 	command := []string{
-		"go", "build", "-o", output, "-a", "-installsuffix", "cgo", "-ldflags", "'-s'", b.SourceFolder,
+		"go", "build", "-o", output,
 	}
+	if staticBuild {
+		command = append(command, []string{"-a", "-installsuffix", "cgo", "-ldflags", "'-s'"}...)
+	}
+	command = append(command, b.SourceFolder)
 
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Env = b.commandEnv()

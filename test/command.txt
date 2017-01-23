@@ -1,0 +1,2 @@
+go run *.go --deploy
+go run *.go --deploy --static-build=false --base-image=dock0/arch

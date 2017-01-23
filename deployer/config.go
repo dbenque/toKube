@@ -14,23 +14,23 @@ import (
 )
 
 var (
-	apiHost       string
 	cpuLimit      string
 	cpuRequest    string
 	memoryLimit   string
 	memoryRequest string
 	namespace     string
+	baseImage     string
 	replicas      int
 )
 
 func init() {
-	flag.StringVar(&apiHost, "api-host", "127.0.0.1:8001", "Kubernetes API server")
 	flag.StringVar(&cpuLimit, "cpu-limit", "100m", "Max CPU in milicores")
 	flag.StringVar(&cpuRequest, "cpu-request", "100m", "Min CPU in milicores")
 	flag.StringVar(&memoryLimit, "memory-limit", "64M", "Max memory in MB")
 	flag.StringVar(&memoryRequest, "memory-request", "64M", "Min memory in MB")
 	flag.StringVar(&namespace, "namespace", "default", "The Kubernetes namespace.")
 	flag.IntVar(&replicas, "replicas", 1, "Number of replicas")
+	flag.StringVar(&baseImage, "base-image", "alpine:3.4", "Base image to run the container")
 }
 
 //Deployment contains configuration for the deployment
@@ -84,7 +84,7 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	container := v1.Container{}
 	container.Args = d.Args
 	container.Command = []string{filepath.Join("/opt/bin", d.Name)}
-	container.Image = "alpine:3.4"
+	container.Image = baseImage
 	container.Name = d.Name
 	container.VolumeMounts = volumeMounts
 	container.Ports = []v1.ContainerPort{v1.ContainerPort{ContainerPort: 9102}} // for prometheus
