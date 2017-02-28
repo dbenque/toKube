@@ -125,9 +125,10 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	binaryPath := filepath.Join("/opt/bin", d.Name)
 	initContainers := []v1.Container{
 		v1.Container{
-			Name:    "install",
-			Image:   "alpine:3.4",
-			Command: []string{"wget", "-O", binaryPath, d.BinaryURL},
+			Name:            "install",
+			Image:           "alpine:3.4",
+			ImagePullPolicy: "IfNotPresent",
+			Command:         []string{"wget", "-O", binaryPath, d.BinaryURL},
 			VolumeMounts: []v1.VolumeMount{
 				v1.VolumeMount{
 					Name:      "bin",
@@ -136,9 +137,10 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 			},
 		},
 		v1.Container{
-			Name:    "configure",
-			Image:   "alpine:3.4",
-			Command: []string{"chmod", "+x", binaryPath},
+			Name:            "configure",
+			Image:           "alpine:3.4",
+			ImagePullPolicy: "IfNotPresent",
+			Command:         []string{"chmod", "+x", binaryPath},
 			VolumeMounts: []v1.VolumeMount{
 				v1.VolumeMount{
 					Name:      "bin",
