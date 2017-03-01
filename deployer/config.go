@@ -83,7 +83,7 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 
 	container := v1.Container{}
 	container.Args = d.Args
-	container.Command = []string{filepath.Join("/opt/bin", d.Name)}
+	container.Command = append([]string{filepath.Join("/opt/bin", d.Name)}, getArgs()...)
 	container.Image = baseImage
 	container.Name = d.Name
 	container.VolumeMounts = volumeMounts

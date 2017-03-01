@@ -19,9 +19,29 @@ import (
 )
 
 var deploy bool
+var deploySuffix string
 
 func init() {
 	flag.BoolVar(&deploy, "deploy", false, "To deploy or run")
+	flag.StringVar(&deploySuffix, "deploySuffix", "", "Suffix to append to deployment name")
+}
+
+func getArgs() []string {
+	purgedArgs := []string{}
+	if len(os.Args) <= 1 {
+		return purgedArgs
+	}
+
+	for _, v := range os.Args[1:] {
+		param := strings.Split(v, "=")[0]
+		switch param {
+		case "-deploy", "-deploySuffix":
+			continue
+		default:
+			purgedArgs = append(purgedArgs, v)
+		}
+	}
+	return purgedArgs
 }
 
 //AutoDeploy check if the main should be auto-deployed under kubernetes.
@@ -39,7 +59,8 @@ func AutoDeploy() {
 		u, err := url.Parse(kcliConfig.Host)
 		node, _, err := net.SplitHostPort(u.Host)
 		if err != nil {
-			panic(err.Error())
+			//panic(err.Error())
+			node = u.Host
 		}
 		// creates the clientset
 		kcli, err := kubernetes.NewForConfig(kcliConfig)
@@ -51,10 +72,19 @@ func AutoDeploy() {
 			panic("minifileserver service not declared in your kube cluster")
 		}
 		mfsPort := strconv.Itoa(int(mfs.Spec.Ports[0].NodePort))
+		mfsURL := "http://" + net.JoinHostPort(node, mfsPort)
+
+		//use Ingress if exist
+		if len(mfs.Status.LoadBalancer.Ingress) > 0 {
+			mfsURL = "http://" + mfs.Status.LoadBalancer.Ingress[0].IP
+		}
 
 		fmt.Println("Building")
 		pwd, _ := os.Getwd()
 		_, name := path.Split(pwd)
+		if deploySuffix != "" {
+			name += "-" + deploySuffix
+		}
 		b := builder.BuildConfig{Name: name, SourceFolder: "./"}
 		b.UseShellEnv()
 		binPath, err := b.Build()
@@ -66,7 +96,7 @@ func AutoDeploy() {
 
 		fmt.Println("Uploading")
 
-		if err := client.PostFile(binPath, "http://"+net.JoinHostPort(node, mfsPort)); err != nil {
+		if err := client.PostFile(binPath, mfsURL); err != nil {
 			fmt.Printf("Error Uploading: %s", err)
 			panic("Error Uploading")
 		}
@@ -101,7 +131,8 @@ func DeployFolder(name, folder string, replicas int) {
 	u, err := url.Parse(kcliConfig.Host)
 	node, _, err := net.SplitHostPort(u.Host)
 	if err != nil {
-		panic(err.Error())
+		//panic(err.Error())
+		node = u.Host
 	}
 	// creates the clientset
 	kcli, err := kubernetes.NewForConfig(kcliConfig)
@@ -113,6 +144,12 @@ func DeployFolder(name, folder string, replicas int) {
 		panic("minifileserver service not declared in your kube cluster")
 	}
 	mfsPort := strconv.Itoa(int(mfs.Spec.Ports[0].NodePort))
+	mfsURL := "http://" + net.JoinHostPort(node, mfsPort)
+
+	//use Ingress if exist
+	if len(mfs.Status.LoadBalancer.Ingress) > 0 {
+		mfsURL = "http://" + mfs.Status.LoadBalancer.Ingress[0].IP
+	}
 
 	fmt.Println("Building")
 	b := builder.BuildConfig{Name: name, SourceFolder: folder}
@@ -126,7 +163,7 @@ func DeployFolder(name, folder string, replicas int) {
 
 	fmt.Println("Uploading")
 
-	if err := client.PostFile(binPath, "http://"+net.JoinHostPort(node, mfsPort)); err != nil {
+	if err := client.PostFile(binPath, mfsURL); err != nil {
 		fmt.Printf("Error Uploading: %s", err)
 		panic("Error Uploading")
 	}

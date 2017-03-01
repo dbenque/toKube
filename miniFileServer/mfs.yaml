@@ -34,4 +34,4 @@ spec:
     nodePort: 30666
   selector:
     run: minifileserver
-  type: NodePort
+  type: LoadBalancer
