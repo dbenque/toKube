@@ -1,9 +1,14 @@
 package: github.com/dbenque/toKube
 import:
+- package: k8s.io/apimachinery
+  version: d90aa2c8531f13b0ca734845934c10dcb6a56ca7
+  subpackages:
+  - pkg/api/resource
+  - pkg/apis/meta/v1
 - package: k8s.io/client-go
+  version: d04a6004ffb19ecd067120ca99aee0176f1de810
   subpackages:
   - kubernetes
-  - pkg/api/resource
   - pkg/api/v1
   - pkg/apis/extensions/v1beta1
   - pkg/apis/meta/v1

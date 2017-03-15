@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api/resource"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
-	metav1 "k8s.io/client-go/pkg/apis/meta/v1"
 )
 
 var (
@@ -204,7 +204,7 @@ func (d *Deployment) ExposeService(kclientset kubernetes.Interface) error {
 
 	_, err := kclientset.CoreV1().Services(d.Namespace).Create(&svc)
 	if err != nil {
-		return fmt.Errorf("Fail to create replicatSet: %s", err)
+		return fmt.Errorf("Fail to create service: %s", err)
 	}
 
 	return nil

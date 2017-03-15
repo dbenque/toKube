@@ -13,8 +13,8 @@ import (
 
 	"github.com/dbenque/toKube/builder"
 	"github.com/dbenque/toKube/miniFileServer/client"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
