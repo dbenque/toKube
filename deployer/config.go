@@ -172,14 +172,19 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	krs.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: d.Labels,
 	}
+	krs.Labels = d.Labels
 	krs.Spec.Template = v1.PodTemplateSpec{}
-	krs.Spec.Template.Labels = d.Labels
+
 	krs.Spec.Template.Annotations = annotations
 	krs.Spec.Template.Spec.Containers = append(krs.Spec.Template.Spec.Containers, container)
 	krs.Spec.Template.Spec.Volumes = volumes
 	//krs.Spec.Template.Spec.InitContainers = initContainers
-
-	krs.Spec.Template.Labels["traffic"] = "yes"
+	podTemplateLabels := map[string]string{}
+	for k, v := range d.Labels {
+		podTemplateLabels[k] = v
+	}
+	podTemplateLabels["traffic"] = "yes"
+	krs.Spec.Template.Labels = podTemplateLabels
 
 	_, err = kclientset.ExtensionsV1beta1().ReplicaSets(d.Namespace).Create(&krs)
 	if err != nil {

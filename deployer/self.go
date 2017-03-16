@@ -41,7 +41,7 @@ func getArgs() []string {
 	for _, v := range os.Args[1:] {
 		param := strings.Split(v, "=")[0]
 		switch param {
-		case "-deploy", "-deploySuffix":
+		case "-deploy", "-deploySuffix", "--deploy", "--deploySuffix":
 			continue
 		default:
 			purgedArgs = append(purgedArgs, v)
