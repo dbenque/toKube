@@ -158,6 +158,7 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	annotations["prometheus.io/scrape"] = "true"
 
 	d.Labels["run"] = d.Name
+	d.Labels["visualize"] = "true"
 
 	var replica int32
 	replica = int32(d.Replicas)
@@ -169,8 +170,18 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	krs.Namespace = d.Namespace
 	krs.Spec = v1beta1.ReplicaSetSpec{}
 	krs.Spec.Replicas = &replica
+	selector := map[string]string{}
+	for k, v := range d.Labels {
+		switch k {
+		case "name", "visualize":
+		// ignore these ones
+		default:
+			selector[k] = v
+		}
+	}
+
 	krs.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: d.Labels,
+		MatchLabels: selector,
 	}
 	krs.Labels = d.Labels
 	krs.Spec.Template = v1.PodTemplateSpec{}
@@ -180,10 +191,12 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	krs.Spec.Template.Spec.Volumes = volumes
 	//krs.Spec.Template.Spec.InitContainers = initContainers
 	podTemplateLabels := map[string]string{}
-	for k, v := range d.Labels {
+	for k, v := range selector {
 		podTemplateLabels[k] = v
 	}
+	podTemplateLabels["visualize"] = "true" // Label extension compare to selector
 	podTemplateLabels["traffic"] = "yes"
+
 	krs.Spec.Template.Labels = podTemplateLabels
 
 	_, err = kclientset.ExtensionsV1beta1().ReplicaSets(d.Namespace).Create(&krs)
@@ -202,6 +215,7 @@ func (d *Deployment) ExposeService(kclientset kubernetes.Interface) error {
 	svc.Kind = "Service"
 	svc.Name = d.Name
 	svc.Namespace = d.Namespace
+	svc.Labels = map[string]string{"visualize": "true"}
 	svc.Spec.Selector = d.Labels
 	svc.Spec.Selector["traffic"] = "yes"
 	svc.Spec.Ports = []v1.ServicePort{v1.ServicePort{Port: 80}}
