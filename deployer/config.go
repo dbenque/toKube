@@ -132,6 +132,9 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 		container.Env = env
 	}
 
+	if d.Annotations == nil {
+		d.Annotations = map[string]string{}
+	}
 	annotations := d.Annotations
 
 	binaryPath := filepath.Join("/opt/bin", d.Name)
@@ -166,6 +169,7 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	if err != nil {
 		return err
 	}
+
 	annotations["pod.beta.kubernetes.io/init-containers"] = string(ic)
 	annotations["prometheus.io/scrape"] = "true"
 
