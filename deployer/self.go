@@ -61,24 +61,24 @@ func AutoDeploy() {
 			name += "-" + deploySuffix
 		}
 		binPath := build(name, "./")
-		uploadAndDeployToKube(name, binPath, 1, getArgs(), nil)
+		uploadAndDeployToKube(name, binPath, 1, getArgs(), nil, nil)
 		os.Exit(0)
 	}
 }
 
 //DeployFolder builds and deploys the code in the folder
-func DeployFolder(name, folder string, replicas int, args []string, podLabels map[string]string) {
+func DeployFolder(name, folder string, replicas int, args []string, podLabels map[string]string, annotations map[string]string) {
 	fmt.Println("Deployment mode")
 	binPath := build(name, folder)
-	uploadAndDeployToKube(name, binPath, replicas, args, podLabels)
+	uploadAndDeployToKube(name, binPath, replicas, args, podLabels, annotations)
 }
 
-func uploadAndDeployToKube(name, binPath string, replicas int, args []string, podLabels map[string]string) {
+func uploadAndDeployToKube(name, binPath string, replicas int, args []string, podLabels map[string]string, annotations map[string]string) {
 	_, binName := path.Split(binPath)
 	kcli, node := getKubeClientAndNode()
 	mfsURL := getMinifileserverURL(kcli, node)
 	uploadToMinifileServer(binPath, mfsURL)
-	deployToKube(name, binName, replicas, kcli, args, podLabels)
+	deployToKube(name, binName, replicas, kcli, args, podLabels, annotations)
 }
 
 func getKubeClientAndNode() (kubernetes.Interface, string) {
@@ -141,7 +141,7 @@ func build(name string, sourceFolder string) (binFullPath string) {
 	return
 }
 
-func deployToKube(name, binName string, replicas int, kcli kubernetes.Interface, args []string, podLabels map[string]string) {
+func deployToKube(name, binName string, replicas int, kcli kubernetes.Interface, args []string, podLabels map[string]string, annotations map[string]string) {
 	fmt.Println("Deploying")
 	deployment := NewDeploymentFromArgs(strings.ToLower(name))
 	if podLabels != nil {
@@ -149,6 +149,7 @@ func deployToKube(name, binName string, replicas int, kcli kubernetes.Interface,
 			deployment.PodLabels[k] = v
 		}
 	}
+	deployment.Annotations = annotations
 	deployment.Args = args
 	deployment.Replicas = replicas
 	deployment.BinaryURL = "http://minifileserver/" + binName
