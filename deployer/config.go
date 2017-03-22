@@ -21,6 +21,7 @@ var (
 	namespace     string
 	baseImage     string
 	replicas      int
+	labels        string
 )
 
 func init() {
@@ -31,6 +32,7 @@ func init() {
 	flag.StringVar(&namespace, "namespace", "default", "The Kubernetes namespace.")
 	flag.IntVar(&replicas, "replicas", 1, "Number of replicas")
 	flag.StringVar(&baseImage, "base-image", "alpine:3.4", "Base image to run the container")
+	flag.StringVar(&labels, "labels", "{}", "map of labels (json serialization of map)")
 }
 
 //Deployment contains configuration for the deployment
@@ -51,6 +53,7 @@ type Deployment struct {
 
 //NewDeploymentFromArgs prepare a deployment based on the command line parameters
 func NewDeploymentFromArgs(name string) *Deployment {
+
 	return &Deployment{
 		cpuRequest:    cpuRequest,
 		cpuLimit:      cpuLimit,
@@ -196,6 +199,14 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	}
 	podTemplateLabels["visualize"] = "true" // Label extension compare to selector
 	podTemplateLabels["traffic"] = "yes"
+
+	lbs := map[string]string{}
+	if err := json.Unmarshal([]byte(labels), &lbs); err != nil {
+		return fmt.Errorf("Can't read labels: %v", err)
+	}
+	for k, v := range lbs {
+		podTemplateLabels[k] = v
+	}
 
 	krs.Spec.Template.Labels = podTemplateLabels
 
