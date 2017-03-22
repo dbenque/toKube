@@ -48,13 +48,13 @@ type Deployment struct {
 	Name          string
 	Namespace     string
 	Replicas      int
-	Labels        map[string]string
+	Labels        map[string]string // Labels on rs,service and pod
+	PodLabels     map[string]string // Extension of Pod Labels.
 }
 
 //NewDeploymentFromArgs prepare a deployment based on the command line parameters
 func NewDeploymentFromArgs(name string) *Deployment {
-
-	return &Deployment{
+	d := &Deployment{
 		cpuRequest:    cpuRequest,
 		cpuLimit:      cpuLimit,
 		memoryRequest: memoryRequest,
@@ -63,10 +63,19 @@ func NewDeploymentFromArgs(name string) *Deployment {
 		Namespace:     namespace,
 		Annotations:   map[string]string{},
 		Labels:        map[string]string{},
+		PodLabels:     map[string]string{},
 		Env:           map[string]string{},
 		Args:          []string{},
 		Name:          name,
 	}
+
+	lbs := map[string]string{}
+	if err := json.Unmarshal([]byte(labels), &lbs); err != nil {
+		for k, v := range lbs {
+			d.PodLabels[k] = v
+		}
+	}
+	return d
 }
 
 //Create the a deployment
@@ -200,11 +209,7 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	podTemplateLabels["visualize"] = "true" // Label extension compare to selector
 	podTemplateLabels["traffic"] = "yes"
 
-	lbs := map[string]string{}
-	if err := json.Unmarshal([]byte(labels), &lbs); err != nil {
-		return fmt.Errorf("Can't read labels: %v", err)
-	}
-	for k, v := range lbs {
+	for k, v := range d.PodLabels {
 		podTemplateLabels[k] = v
 	}
 
