@@ -31,10 +31,12 @@ Options
 
 **Pod management**
 - labels: Labels to be added on the pod
+- configMaps: ConfigMaps to mount in volumes  (mounted in volume /cfg/ )
 
 example:
 ```
 go run *.go --deploy --labels='{"app":"inv","version":"1.0"}'
+go run *.go --deploy --labels='{"app":"inv","version":"1.0"}' --configMaps='["mycfgmap"]'
 ```
 
 Note that the following lables are automatically added:
