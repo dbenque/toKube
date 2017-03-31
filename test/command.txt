@@ -1,3 +1,4 @@
 go run *.go --deploy
 go run *.go --deploy --labels='{"app":"inv","version":"1.0"}'
 go run *.go --deploy --static-build=false --base-image=dock0/arch
+go run *.go --deploy --labels='{"app":"inv","version":"1.0"}' --configMaps='["mycfgmap"]'

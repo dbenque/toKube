@@ -22,6 +22,7 @@ var (
 	baseImage     string
 	replicas      int
 	labels        string
+	configMaps    string
 )
 
 func init() {
@@ -33,48 +34,58 @@ func init() {
 	flag.IntVar(&replicas, "replicas", 1, "Number of replicas")
 	flag.StringVar(&baseImage, "base-image", "alpine:3.4", "Base image to run the container")
 	flag.StringVar(&labels, "labels", "{}", "map of labels (json serialization of map)")
+	flag.StringVar(&configMaps, "configMaps", "[]", "list of configMap name to mount in volumes (json serialization of map)")
 }
 
 //Deployment contains configuration for the deployment
 type Deployment struct {
-	Annotations   map[string]string
-	Args          []string
-	Env           map[string]string
-	BinaryURL     string
-	cpuRequest    string
-	cpuLimit      string
-	memoryRequest string
-	memoryLimit   string
-	Name          string
-	Namespace     string
-	Replicas      int
-	Labels        map[string]string // Labels on rs,service and pod
-	PodLabels     map[string]string // Extension of Pod Labels.
+	Annotations     map[string]string
+	Args            []string
+	Env             map[string]string
+	BinaryURL       string
+	cpuRequest      string
+	cpuLimit        string
+	memoryRequest   string
+	memoryLimit     string
+	Name            string
+	Namespace       string
+	Replicas        int
+	Labels          map[string]string // Labels on rs,service and pod
+	PodLabels       map[string]string // Extension of Pod Labels.
+	ConfigMapVolume []string
 }
 
 //NewDeploymentFromArgs prepare a deployment based on the command line parameters
 func NewDeploymentFromArgs(name string) *Deployment {
 	d := &Deployment{
-		cpuRequest:    cpuRequest,
-		cpuLimit:      cpuLimit,
-		memoryRequest: memoryRequest,
-		memoryLimit:   memoryLimit,
-		Replicas:      replicas,
-		Namespace:     namespace,
-		Annotations:   map[string]string{},
-		Labels:        map[string]string{},
-		PodLabels:     map[string]string{},
-		Env:           map[string]string{},
-		Args:          []string{},
-		Name:          name,
+		cpuRequest:      cpuRequest,
+		cpuLimit:        cpuLimit,
+		memoryRequest:   memoryRequest,
+		memoryLimit:     memoryLimit,
+		Replicas:        replicas,
+		Namespace:       namespace,
+		Annotations:     map[string]string{},
+		Labels:          map[string]string{},
+		PodLabels:       map[string]string{},
+		Env:             map[string]string{},
+		Args:            []string{},
+		ConfigMapVolume: []string{},
+		Name:            name,
 	}
 
 	lbs := map[string]string{}
-	if err := json.Unmarshal([]byte(labels), &lbs); err != nil {
+	if err := json.Unmarshal([]byte(labels), &lbs); err == nil {
 		for k, v := range lbs {
 			d.PodLabels[k] = v
 		}
+	} else {
+		//TODO : log error
 	}
+
+	if err := json.Unmarshal([]byte(configMaps), &d.ConfigMapVolume); err != nil {
+		//TODO : log error
+	}
+
 	return d
 }
 
@@ -92,6 +103,22 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 		Name:      "bin",
 		MountPath: "/opt/bin",
 	})
+
+	// configMap volumes
+	for _, cmv := range d.ConfigMapVolume {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      "config-" + cmv,
+			MountPath: "/cfg/" + cmv,
+		})
+		volumes = append(volumes, v1.Volume{
+			Name: "config-" + cmv,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{Name: cmv},
+				},
+			},
+		})
+	}
 
 	container := v1.Container{}
 	container.Args = d.Args
