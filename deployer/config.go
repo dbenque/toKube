@@ -265,7 +265,7 @@ func (d *Deployment) ExposeService(kclientset kubernetes.Interface) error {
 	svc.Labels = map[string]string{"visualize": "true", "run": d.Name}
 	svc.Spec.Selector = d.Labels
 	svc.Spec.Selector["traffic"] = "yes"
-	svc.Spec.Ports = []v1.ServicePort{v1.ServicePort{Port: 80}}
+	svc.Spec.Ports = []v1.ServicePort{v1.ServicePort{Port: 80, Name: "http"}}
 	svc.Spec.Type = "NodePort"
 
 	_, err := kclientset.CoreV1().Services(d.Namespace).Create(&svc)
