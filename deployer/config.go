@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/v1"
+	kapi "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 )
 
@@ -43,10 +44,7 @@ type Deployment struct {
 	Args            []string
 	Env             map[string]string
 	BinaryURL       string
-	cpuRequest      string
-	cpuLimit        string
-	memoryRequest   string
-	memoryLimit     string
+	Resource        kapi.ResourceRequirements
 	Name            string
 	Namespace       string
 	Replicas        int
@@ -58,10 +56,16 @@ type Deployment struct {
 //NewDeploymentFromArgs prepare a deployment based on the command line parameters
 func NewDeploymentFromArgs(name string) *Deployment {
 	d := &Deployment{
-		cpuRequest:      cpuRequest,
-		cpuLimit:        cpuLimit,
-		memoryRequest:   memoryRequest,
-		memoryLimit:     memoryLimit,
+		Resource: kapi.ResourceRequirements{
+			Limits: kapi.ResourceList{
+				kapi.ResourceCPU:    resource.MustParse(cpuLimit),
+				kapi.ResourceMemory: resource.MustParse(memoryLimit),
+			},
+			Requests: kapi.ResourceList{
+				kapi.ResourceCPU:    resource.MustParse(cpuRequest),
+				kapi.ResourceMemory: resource.MustParse(memoryRequest),
+			},
+		},
 		Replicas:        replicas,
 		Namespace:       namespace,
 		Annotations:     map[string]string{},
@@ -128,28 +132,30 @@ func (d *Deployment) Create(kclientset kubernetes.Interface) error {
 	container.VolumeMounts = volumeMounts
 	container.Ports = []v1.ContainerPort{v1.ContainerPort{ContainerPort: 9102}} // for prometheus
 
-	resourceLimits := make(v1.ResourceList)
-	if d.cpuLimit != "" {
-		resourceLimits[v1.ResourceCPU] = resource.MustParse(d.cpuLimit)
-	}
-	if d.memoryLimit != "" {
-		resourceLimits[v1.ResourceMemory] = resource.MustParse(d.memoryLimit)
-	}
+	// resourceLimits := make(v1.ResourceList)
+	// if d.cpuLimit != "" {
+	// 	resourceLimits[v1.ResourceCPU] = resource.MustParse(d.cpuLimit)
+	// }
+	// if d.memoryLimit != "" {
+	// 	resourceLimits[v1.ResourceMemory] = resource.MustParse(d.memoryLimit)
+	// }
 
-	resourceRequests := make(v1.ResourceList)
-	if d.cpuRequest != "" {
-		resourceRequests[v1.ResourceCPU] = resource.MustParse(d.cpuRequest)
-	}
-	if d.memoryRequest != "" {
-		resourceRequests[v1.ResourceMemory] = resource.MustParse(d.memoryRequest)
-	}
+	// resourceRequests := make(v1.ResourceList)
+	// if d.cpuRequest != "" {
+	// 	resourceRequests[v1.ResourceCPU] = resource.MustParse(d.cpuRequest)
+	// }
+	// if d.memoryRequest != "" {
+	// 	resourceRequests[v1.ResourceMemory] = resource.MustParse(d.memoryRequest)
+	// }
 
-	if len(resourceLimits) > 0 {
-		container.Resources.Limits = resourceLimits
-	}
-	if len(resourceRequests) > 0 {
-		container.Resources.Requests = resourceRequests
-	}
+	// if len(resourceLimits) > 0 {
+	// 	container.Resources.Limits = resourceLimits
+	// }
+	// if len(resourceRequests) > 0 {
+	// 	container.Resources.Requests = resourceRequests
+	// }
+
+	container.Resources = d.Resource
 
 	if len(d.Env) > 0 {
 		env := make([]v1.EnvVar, 0)
