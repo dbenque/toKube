@@ -31,8 +31,8 @@ func init() {
 	flag.StringVar(&deploySuffix, "deploySuffix", "", "Suffix to append to deployment name")
 }
 
-// getArgs : capture the args to be passed to the binary when starting the container. It removes the args associated to deployment and keep others.
-func getArgs() []string {
+// getArgsForDeployment : capture the args to be passed to the binary when starting the container. It removes the args associated to deployment and keep others.
+func getArgsForDeployment() []string {
 	purgedArgs := []string{}
 	if len(os.Args) <= 1 {
 		return purgedArgs
@@ -61,24 +61,28 @@ func AutoDeploy() {
 			name += "-" + deploySuffix
 		}
 		binPath := build(name, "./")
-		uploadAndDeployToKube(name, binPath, 1, getArgs(), nil, nil)
+		_, binName := path.Split(binPath)
+		kcli, node := getKubeClientAndNode()
+		mfsURL := getMinifileserverURL(kcli, node)
+		uploadToMinifileServer(binPath, mfsURL)
+		deployment := NewDeploymentFromArgs(name)
+		deployment.BinaryURL = "http://minifileserver/" + binName
+		deployment.Args = getArgsForDeployment()
+		deployToKube(kcli, deployment)
 		os.Exit(0)
 	}
 }
 
 //DeployFolder builds and deploys the code in the folder
-func DeployFolder(name, folder string, replicas int, args []string, podLabels map[string]string, annotations map[string]string) {
+func DeployFolder(folder string, deployment *Deployment) {
 	fmt.Println("Deployment mode")
-	binPath := build(name, folder)
-	uploadAndDeployToKube(name, binPath, replicas, args, podLabels, annotations)
-}
-
-func uploadAndDeployToKube(name, binPath string, replicas int, args []string, podLabels map[string]string, annotations map[string]string) {
+	binPath := build(deployment.Name, folder)
 	_, binName := path.Split(binPath)
 	kcli, node := getKubeClientAndNode()
 	mfsURL := getMinifileserverURL(kcli, node)
 	uploadToMinifileServer(binPath, mfsURL)
-	deployToKube(name, binName, replicas, kcli, args, podLabels, annotations)
+	deployment.BinaryURL = "http://minifileserver/" + binName
+	deployToKube(kcli, deployment)
 }
 
 func getKubeClientAndNode() (kubernetes.Interface, string) {
@@ -99,13 +103,11 @@ func getKubeClientAndNode() (kubernetes.Interface, string) {
 	if err != nil {
 		panic(err.Error())
 	}
-
 	return kcli, node
 }
 
 func uploadToMinifileServer(binPath, mfsURL string) {
 	fmt.Println("Uploading")
-
 	if err := client.PostFile(binPath, mfsURL); err != nil {
 		fmt.Printf("Error Uploading: %s", err)
 		panic("Error Uploading")
@@ -129,7 +131,6 @@ func getMinifileserverURL(kcli kubernetes.Interface, kubeNode string) string {
 
 func build(name string, sourceFolder string) (binFullPath string) {
 	fmt.Println("Building")
-
 	b := builder.BuildConfig{Name: name, SourceFolder: sourceFolder}
 	b.UseShellEnv()
 	var err error
@@ -141,18 +142,8 @@ func build(name string, sourceFolder string) (binFullPath string) {
 	return
 }
 
-func deployToKube(name, binName string, replicas int, kcli kubernetes.Interface, args []string, podLabels map[string]string, annotations map[string]string) {
+func deployToKube(kcli kubernetes.Interface, deployment *Deployment) {
 	fmt.Println("Deploying")
-	deployment := NewDeploymentFromArgs(strings.ToLower(name))
-	if podLabels != nil {
-		for k, v := range podLabels {
-			deployment.PodLabels[k] = v
-		}
-	}
-	deployment.Annotations = annotations
-	deployment.Args = args
-	deployment.Replicas = replicas
-	deployment.BinaryURL = "http://minifileserver/" + binName
 	if err := deployment.Create(kcli); err != nil {
 		fmt.Printf("Error Deploying: %s", err)
 		panic("Error Deploying")
