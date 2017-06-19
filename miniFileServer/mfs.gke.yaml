@@ -18,6 +18,7 @@ spec:
       containers:
       - image: gcr.io/${DEVSHELL_PROJECT_ID}/minifileserver:v0
         name: minifileserver
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
           protocol: TCP

@@ -5,7 +5,7 @@
 # example: gcloud container clusters get-credentials cluster-1 --zone europe-west1-b
 #
 #
-
+rm ./minifileserver >/dev/null 2>&1
 GO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-s' .
 if [ ! $? -eq 0 ]; then
  echo -e "go build failed"
